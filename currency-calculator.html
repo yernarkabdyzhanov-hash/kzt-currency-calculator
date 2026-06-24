@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="KZT Курс">
+<meta name="theme-color" content="#1a6ef5">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Калькулятор валют — KZT</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f4;
+    --text: #1a1a1a;
+    --text-secondary: #6b6b6b;
+    --border: rgba(0,0,0,0.12);
+    --border-hover: rgba(0,0,0,0.25);
+    --accent: #1a6ef5;
+    --accent-bg: #e8f0fe;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg-secondary: #2c2c2e;
+      --text: #f0f0f0;
+      --text-secondary: #98989e;
+      --border: rgba(255,255,255,0.12);
+      --border-hover: rgba(255,255,255,0.28);
+      --accent: #4d8ef7;
+      --accent-bg: #1a2a45;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 2rem 1.5rem; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 500; margin-bottom: 1.5rem; color: var(--text); }
+  .section-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .direction-row { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+  .dir-btn { font-size: 13px; padding: 7px 16px; border-radius: var(--radius-md); background: var(--bg-secondary); border: 0.5px solid var(--border); cursor: pointer; color: var(--text-secondary); transition: all 0.15s; font-family: inherit; }
+  .dir-btn:hover { border-color: var(--border-hover); }
+  .dir-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+  .pinned-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 1.5rem; }
+  .pin-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; cursor: pointer; transition: border-color 0.15s; }
+  .pin-card:hover { border-color: var(--border-hover); }
+  .pin-card.active { border: 2px solid var(--accent); background: var(--accent-bg); }
+  .pin-card .flag { font-size: 20px; margin-bottom: 4px; }
+  .pin-card .cur-code { font-size: 13px; font-weight: 500; color: var(--text); }
+  .pin-card .cur-name { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .pin-card .cur-rate { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
+  .input-row { display: flex; gap: 12px; align-items: center; margin-bottom: 1.25rem; }
+  .input-row input { flex: 1; font-size: 22px; font-weight: 500; padding: 10px 14px; border: 0.5px solid var(--border); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text); font-family: inherit; outline: none; transition: border-color 0.15s; }
+  .input-row input:focus { border-color: var(--accent); }
+  .input-row .cur-badge { font-size: 14px; color: var(--text-secondary); white-space: nowrap; min-width: 60px; }
+  .result-block { background: var(--bg-secondary); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .result-main { font-size: 32px; font-weight: 500; color: var(--text); }
+  .result-sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+  .other-row { display: flex; gap: 10px; align-items: center; }
+  .other-row select { flex: 1; font-size: 14px; padding: 8px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text); font-family: inherit; outline: none; cursor: pointer; }
+  .other-row select:focus { border-color: var(--accent); }
+  .other-result { font-size: 14px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; min-width: 120px; text-align: right; }
+  .status { font-size: 11px; color: var(--text-secondary); text-align: right; margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+
+<h1>Калькулятор курса валют к тенге</h1>
+
+<div class="direction-row">
+  <button class="dir-btn active" id="btn-to-kzt" onclick="setDir('to-kzt')">Валюта → KZT</button>
+  <button class="dir-btn" id="btn-from-kzt" onclick="setDir('from-kzt')">KZT → Валюта</button>
+</div>
+
+<div class="section-label">Основные валюты</div>
+<div class="pinned-grid" id="pinned-grid"></div>
+
+<div class="input-row">
+  <input type="number" id="amount-input" value="100" min="0" step="any">
+  <span class="cur-badge" id="input-label">USD</span>
+</div>
+
+<div class="result-block">
+  <div class="result-main" id="result-main">—</div>
+  <div class="result-sub" id="result-sub"></div>
+</div>
+
+<hr class="divider">
+<div class="section-label">Другая валюта</div>
+<div class="other-row">
+  <select id="other-select"></select>
+  <span class="other-result" id="other-result">—</span>
+</div>
+
+<div class="status" id="status">Загрузка курсов...</div>
+
+<script>
+const PINNED = [
+  { code:'USD', name:'Доллар США',         flag:'🇺🇸' },
+  { code:'EUR', name:'Евро',               flag:'🇪🇺' },
+  { code:'GBP', name:'Фунт стерлингов',    flag:'🇬🇧' },
+  { code:'AED', name:'Дирхам ОАЭ',         flag:'🇦🇪' },
+  { code:'RUB', name:'Российский рубль',   flag:'🇷🇺' },
+  { code:'CNY', name:'Китайский юань',     flag:'🇨🇳' },
+  { code:'KGS', name:'Кыргызский сом',     flag:'🇰🇬' },
+  { code:'UZS', name:'Узбекский сум',      flag:'🇺🇿' },
+  { code:'TRY', name:'Турецкая лира',      flag:'🇹🇷' },
+  { code:'KRW', name:'Корейская вона',     flag:'🇰🇷' },
+  { code:'VND', name:'Вьетнамский донг',   flag:'🇻🇳' },
+  { code:'JPY', name:'Японская иена',      flag:'🇯🇵' },
+];
+
+const ALL_CURRENCIES = [
+  { code:'AED', name:'Дирхам ОАЭ' },{ code:'AFN', name:'Афганский афгани' },{ code:'ALL', name:'Албанский лек' },
+  { code:'AMD', name:'Армянский драм' },{ code:'ANG', name:'Антильский гульден' },{ code:'AOA', name:'Ангольская кванза' },
+  { code:'ARS', name:'Аргентинское песо' },{ code:'AUD', name:'Австралийский доллар' },{ code:'AZN', name:'Азербайджанский манат' },
+  { code:'BAM', name:'Боснийская марка' },{ code:'BDT', name:'Бангладешская така' },{ code:'BGN', name:'Болгарский лев' },
+  { code:'BHD', name:'Бахрейнский динар' },{ code:'BND', name:'Брунейский доллар' },{ code:'BOB', name:'Боливийский боливиано' },
+  { code:'BRL', name:'Бразильский реал' },{ code:'BTN', name:'Бутанский нгултрум' },{ code:'BWP', name:'Ботсванская пула' },
+  { code:'BYN', name:'Белорусский рубль' },{ code:'CAD', name:'Канадский доллар' },{ code:'CHF', name:'Швейцарский франк' },
+  { code:'CLP', name:'Чилийское песо' },{ code:'CNY', name:'Китайский юань' },{ code:'COP', name:'Колумбийское песо' },
+  { code:'CZK', name:'Чешская крона' },{ code:'DKK', name:'Датская крона' },{ code:'DZD', name:'Алжирский динар' },
+  { code:'EGP', name:'Египетский фунт' },{ code:'EUR', name:'Евро' },{ code:'GBP', name:'Фунт стерлингов' },
+  { code:'GEL', name:'Грузинский лари' },{ code:'GHS', name:'Ганский седи' },{ code:'HKD', name:'Гонконгский доллар' },
+  { code:'HUF', name:'Венгерский форинт' },{ code:'IDR', name:'Индонезийская рупия' },{ code:'ILS', name:'Израильский шекель' },
+  { code:'INR', name:'Индийская рупия' },{ code:'IQD', name:'Иракский динар' },{ code:'ISK', name:'Исландская крона' },
+  { code:'JMD', name:'Ямайский доллар' },{ code:'JOD', name:'Иорданский динар' },{ code:'JPY', name:'Японская иена' },
+  { code:'KES', name:'Кенийский шиллинг' },{ code:'KGS', name:'Кыргызский сом' },{ code:'KHR', name:'Камбоджийский риель' },
+  { code:'KRW', name:'Южнокорейская вона' },{ code:'KWD', name:'Кувейтский динар' },{ code:'KZT', name:'Казахстанский тенге' },
+  { code:'LAK', name:'Лаосский кип' },{ code:'LBP', name:'Ливанский фунт' },{ code:'LKR', name:'Шриланкийская рупия' },
+  { code:'LYD', name:'Ливийский динар' },{ code:'MAD', name:'Марокканский дирхам' },{ code:'MDL', name:'Молдавский лей' },
+  { code:'MNT', name:'Монгольский тугрик' },{ code:'MXN', name:'Мексиканское песо' },{ code:'MYR', name:'Малайзийский ринггит' },
+  { code:'NGN', name:'Нигерийская найра' },{ code:'NOK', name:'Норвежская крона' },{ code:'NPR', name:'Непальская рупия' },
+  { code:'NZD', name:'Новозеландский доллар' },{ code:'OMR', name:'Оманский риал' },{ code:'PHP', name:'Филиппинское песо' },
+  { code:'PKR', name:'Пакистанская рупия' },{ code:'PLN', name:'Польский злотый' },{ code:'QAR', name:'Катарский риал' },
+  { code:'RON', name:'Румынский лей' },{ code:'RSD', name:'Сербский динар' },{ code:'RUB', name:'Российский рубль' },
+  { code:'SAR', name:'Саудовский риял' },{ code:'SEK', name:'Шведская крона' },{ code:'SGD', name:'Сингапурский доллар' },
+  { code:'THB', name:'Тайский бат' },{ code:'TJS', name:'Таджикский сомони' },{ code:'TMT', name:'Туркменский манат' },
+  { code:'TND', name:'Тунисский динар' },{ code:'TRY', name:'Турецкая лира' },{ code:'TWD', name:'Тайваньский доллар' },
+  { code:'TZS', name:'Танзанийский шиллинг' },{ code:'UAH', name:'Украинская гривна' },{ code:'USD', name:'Доллар США' },
+  { code:'UZS', name:'Узбекский сум' },{ code:'VND', name:'Вьетнамский донг' },{ code:'XAF', name:'Франк ЦАФ' },
+  { code:'XOF', name:'Франк ЗАФ' },{ code:'YER', name:'Йеменский риал' },{ code:'ZAR', name:'Южноафриканский рэнд' },
+  { code:'ZMW', name:'Замбийская квача' },
+];
+
+let rates = {};
+let selected = 'USD';
+let direction = 'to-kzt';
+
+async function loadRates() {
+  try {
+    const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/kzt.json');
+    const data = await res.json();
+    for (const [code, val] of Object.entries(data.kzt)) {
+      rates[code.toUpperCase()] = val;
+    }
+    const d = new Date(data.date);
+    document.getElementById('status').textContent = 'Курсы на ' + d.toLocaleDateString('ru-RU');
+  } catch(e) {
+    useFallback();
+    document.getElementById('status').textContent = 'Приближённые курсы (офлайн)';
+  }
+  renderPinned();
+  populateOther();
+  calc();
+}
+
+function useFallback() {
+  const fb = { USD:455, EUR:510, GBP:595, AED:124, RUB:5.1, CNY:63, KGS:5.2, UZS:0.036, TRY:12.5, KRW:0.33, VND:0.018, JPY:3.1 };
+  for (const [c, r] of Object.entries(fb)) rates[c] = 1/r;
+}
+
+function rateToKZT(code) {
+  if (!rates[code]) return null;
+  return 1 / rates[code];
+}
+
+function fmt(n, code) {
+  if (n == null) return '—';
+  if (['KRW','VND','UZS','IDR','IRR','LAK'].includes(code)) return Math.round(n).toLocaleString('ru-RU');
+  if (n >= 1000) return Math.round(n).toLocaleString('ru-RU');
+  if (n >= 10) return n.toFixed(1);
+  if (n >= 0.1) return n.toFixed(2);
+  return n.toFixed(4);
+}
+
+function renderPinned() {
+  document.getElementById('pinned-grid').innerHTML = PINNED.map(p => {
+    const r = rateToKZT(p.code);
+    const rateStr = r ? `1 ${p.code} = ${fmt(r,'KZT')} ₸` : '—';
+    return `<div class="pin-card${p.code===selected?' active':''}" onclick="selectCur('${p.code}')">
+      <div class="flag">${p.flag}</div>
+      <div class="cur-code">${p.code}</div>
+      <div class="cur-name">${p.name}</div>
+      <div class="cur-rate">${rateStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function populateOther() {
+  const pinned = new Set(PINNED.map(p => p.code));
+  pinned.add('KZT');
+  document.getElementById('other-select').innerHTML = ALL_CURRENCIES
+    .filter(c => !pinned.has(c.code) && rates[c.code])
+    .map(c => `<option value="${c.code}">${c.code} — ${c.name}</option>`)
+    .join('');
+  calcOther();
+}
+
+function selectCur(code) {
+  selected = code;
+  renderPinned();
+  calc();
+}
+
+function setDir(dir) {
+  direction = dir;
+  document.getElementById('btn-to-kzt').classList.toggle('active', dir==='to-kzt');
+  document.getElementById('btn-from-kzt').classList.toggle('active', dir==='from-kzt');
+  calc();
+  calcOther();
+}
+
+function calc() {
+  const amount = parseFloat(document.getElementById('amount-input').value) || 0;
+  const r = rateToKZT(selected);
+  let label, sub;
+  if (direction === 'to-kzt') {
+    document.getElementById('input-label').textContent = selected;
+    const result = r ? amount * r : null;
+    label = result != null ? `${fmt(result,'KZT')} ₸` : '—';
+    sub = r ? `1 ${selected} = ${fmt(r,'KZT')} ₸` : 'Курс недоступен';
+  } else {
+    document.getElementById('input-label').textContent = '₸ KZT';
+    const result = r ? amount / r : null;
+    label = result != null ? `${fmt(result,selected)} ${selected}` : '—';
+    sub = r ? `1 ₸ = ${fmt(1/r,selected)} ${selected}` : 'Курс недоступен';
+  }
+  document.getElementById('result-main').textContent = label;
+  document.getElementById('result-sub').textContent = sub;
+}
+
+function calcOther() {
+  const amount = parseFloat(document.getElementById('amount-input').value) || 0;
+  const otherCode = document.getElementById('other-select').value;
+  if (!otherCode || !rates[otherCode]) { document.getElementById('other-result').textContent = '—'; return; }
+  const rOther = rateToKZT(otherCode);
+  let result;
+  if (direction === 'to-kzt') {
+    result = rOther ? amount * rOther : null;
+    document.getElementById('other-result').textContent = result != null ? `= ${fmt(result,'KZT')} ₸` : '—';
+  } else {
+    result = rOther ? amount / rOther : null;
+    document.getElementById('other-result').textContent = result != null ? `= ${fmt(result,otherCode)} ${otherCode}` : '—';
+  }
+}
+
+document.getElementById('amount-input').addEventListener('input', () => { calc(); calcOther(); });
+document.getElementById('other-select').addEventListener('change', calcOther);
+
+loadRates();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
