@@ -2,7 +2,7 @@
   "name": "Калькулятор валют KZT",
   "short_name": "KZT Курс",
   "description": "Курс тенге к основным мировым валютам",
-  "start_url": "./currency-calculator.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1a6ef5",
